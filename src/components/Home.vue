@@ -15,7 +15,13 @@ export default {
             randomNumber: 0
         }
     },
-
+    mounted () {
+      this.$socket.on("user-connected", (data) => {
+        debugger
+        console.log(data)
+        this.$socket.emit("users")
+      })
+    },
     methods: {
         getRandom() {
             this.randomNumber = this.GetFromBackend()
