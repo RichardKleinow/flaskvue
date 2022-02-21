@@ -6,12 +6,11 @@ import router from './router'
 import VueSocketIO from 'vue-socket.io'
 import SocketIO from 'socket.io-client'
 
-// const options = { path: '/api/' }
 
 Vue.use(
   new VueSocketIO({
     debug: true,
-    connection: SocketIO('http://localhost:5000') //, options)
+    connection: SocketIO(document.location.href)
   })
 )
 
