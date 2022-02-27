@@ -1,8 +1,8 @@
 // Home.vue
 
 <template>
-  <div>
-    <p>Home Page</p>
+  <div id="content" class="flex flex-col justify-center pt-5">
+    <h1>Home Page</h1>
     <p>Random Number from Backend: {{ randomNumber }}</p>
     <button @click="getRandom">Random Number Generator</button>
   </div>

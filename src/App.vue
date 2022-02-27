@@ -1,6 +1,8 @@
 <template>
   <div id="app">
+    <div class="flex justify-center">
     <img src="./assets/logo.png">
+   </div>
     <router-view/>
   </div>
 </template>
