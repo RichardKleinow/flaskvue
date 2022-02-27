@@ -1,7 +1,11 @@
 <template>
-<div>
-    <h3> Landing Page of Device {{DeviceName}} </h3>
+<div class="SingleMotorFrame">
+  <div class="header">
+    <h1 class="text-xl font-extrabold"> Landing Page of Device {{DeviceName}} </h1>
+  </div>
+  <div class="content grid justify-center p-5">
     <desy-button>Desy colored button</desy-button>
+  </div>
 </div>
 </template>
 
