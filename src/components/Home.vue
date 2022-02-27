@@ -2,10 +2,14 @@
 
 <template>
   <div id="content" class="flex flex-col justify-center pt-5">
-    <h1>Home Page</h1>
+    <h1 class="text-xl font-bold">Home Page</h1>
     <p>Random Number from Backend: {{ randomNumber }}</p>
     <button @click="getRandom">Random Number Generator</button>
+
+  <div class="flex justify-center">
+    <t-button>Test</t-button>
   </div>
+    </div>
 </template>
 
 <script>
