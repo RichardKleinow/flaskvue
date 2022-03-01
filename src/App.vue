@@ -1,7 +1,9 @@
 <template>
   <div id="app">
     <div class="flex justify-center">
-    <img src="./assets/logo.png">
+      <router-link to="/" >
+        <img src="./assets/logo.svg" alt="./assets/logo.png" id="logo">
+      </router-link>
    </div>
     <router-view/>
   </div>
@@ -21,5 +23,9 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+}
+#logo {
+  height: 200px;
+  width: auto;
 }
 </style>
