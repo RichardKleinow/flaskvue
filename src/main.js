@@ -3,9 +3,9 @@
 import Vue from 'vue'
 import App from './App'
 import router from './router'
-import './assets/tailwind.css'
+import 'tailwindcss/tailwind.css'
 import VueTailwind from 'vue-tailwind'
-import settings from './assets/tailwindsettings'
+import settings from './assets/tailwindsettings.js'
 import VueSocketIO from 'vue-socket.io'
 import SocketIO from 'socket.io-client'
 

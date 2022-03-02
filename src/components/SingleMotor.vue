@@ -5,8 +5,8 @@
     <h1 class="text-xl font-extrabold"> Landing Page of Device {{DeviceName}}</h1>
     <div class="flex justify-center">
     <p class="border border-black  border-r-0">State: </p>
-    <p v-if=DeviceState class="text-green-500 border border-black border-l-0"> online </p>
-    <p v-else class="text-red-500 border border-black border-l-0">offline</p>
+    <p :class="DeviceState ? 'border border-black  border-l-0 text-green-500' : 'border border-black  border-l-0 text-red-500' ">
+       {{  DeviceState  ?  'online'  :  'offline'  }} </p>
     </div>
   </div>
   <!-- Position Segment -->
@@ -26,11 +26,11 @@
     <desy-button variant="error">Stop</desy-button>
     </div>
   </div>
-  <!-- Increment buttons -->
+  <!-- Increment Selection -->
     <div>
       <p class="flex justify-center text-xs">Sollposition Vorgabe (in Steps):</p>
     </div>
-   <div class="flex justify-around p-5">
+   <div class="grid grid-cols-3 justify-around p-5 md:grid-cols-6">
       <t-tag tag-name="label" variant="radiolabel">
         <t-radio name="increments" value=1 checked />
         <span class="ml-2 text-sm">1</span>
@@ -55,6 +55,10 @@
         <t-radio name="increments" value=100000 />
         <span class="ml-2 text-sm">100000</span>
       </t-tag>
+   </div>
+   <div class="flex justify-evenly">
+     <desy-button variant="bigger">+</desy-button>
+     <desy-button variant="bigger">-</desy-button>
    </div>
 </div>
 </template>

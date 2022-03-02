@@ -1,8 +1,13 @@
 module.exports = {
-  purge: [
+  purge: {
+    enabled: process.env.PURGE_CSS === 'production' ? true : false,
+    content: [
     './public/**/*.html',
     './src/**/*.vue',
-  ],
+    './assets/tailwindsettings.js',
+    'node_modules/vue-tailwind/dist/*.js'
+    ],
+  },
   darkMode: false, // or 'media' or 'class'
   theme: {
     container: {
@@ -17,5 +22,7 @@ module.exports = {
   variants: {
     extend: {},
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms')
+  ],
 }
