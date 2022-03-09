@@ -9,6 +9,8 @@ from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO, send, emit, Namespace
 from random import randint
 import threading
+from queue import Queue
+
 
 # ToDo: Serve Production Version from nginx
 
@@ -22,49 +24,23 @@ class BC9000:
         if not self.conn.is_open:
             self.conn.open()
         # Memory area
-        self.cmd = self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset, plc_datatype=pyads.PLCTYPE_INT)
-        self.targetpos = self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset+4, plc_datatype=pyads.PLCTYPE_DINT)
-        self.actpos = self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset+8, plc_datatype=pyads.PLCTYPE_DINT)
-        self.state = self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset+16, plc_datatype=pyads.PLCTYPE_INT)
-        self.error = self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset+18, plc_datatype=pyads.PLCTYPE_SINT)
-        self.virtposlim = self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset+50, plc_datatype=pyads.PLCTYPE_DINT)
-        self.virtneglim = self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset+54, plc_datatype=pyads.PLCTYPE_DINT)
-        self.config = self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset+58, plc_datatype=pyads.PLCTYPE_INT)
+        self.dValues = {'command': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset, plc_datatype=pyads.PLCTYPE_INT),
+                        'targetpos': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 4, plc_datatype=pyads.PLCTYPE_DINT),
+                        'actpos': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 8, plc_datatype=pyads.PLCTYPE_DINT),
+                        'state': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 16, plc_datatype=pyads.PLCTYPE_INT),
+                        'error': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 18, plc_datatype=pyads.PLCTYPE_SINT),
+                        'virtposlim': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 50, plc_datatype=pyads.PLCTYPE_DINT),
+                        'virtneglim': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 54, plc_datatype=pyads.PLCTYPE_DINT),
+                        'config': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 58, plc_datatype=pyads.PLCTYPE_INT)}
         # State area
-        self.running = False
+        self._running = False
         if self.conn.read_state()[0] == 6:
-            self.running = True
-
-    def get_initial_values(self):
-        self.Dvalues = {}
-        self.Dvalues['command'] = self.cmd.read()
-        self.Dvalues['targetpos'] = self.targetpos.read()
-        self.Dvalues['actpos'] = self.actpos.read()
-        self.Dvalues['state'] = self.state.read()
-        self.Dvalues['error'] = self.error.read()
-        self.Dvalues['virtposlim'] = self.virtposlim.read()
-        self.Dvalues['virtneglim'] = self.virtneglim.read()
-        self.Dvalues['config'] = self.config.read()
-        self.Dvalues['running'] = self.running
-        return self.Dvalues
+            self._running = True
 
 
-    def connect_event_handler(self):
-        self.cmd.clear_device_notifications()
-        self.cmd.add_device_notification(self.notify_frontend)
-        #self.targetpos.add_device_notification(self.notify_frontend)
-        #self.actpos.add_device_notification(self.notify_frontend)
-        #self.state.add_device_notification(self.notify_frontend)
-        #self.error.add_device_notification(self.notify_frontend)
-        #self.virtposlim.add_device_notification(self.notify_frontend)
-        #self.virtneglim.add_device_notification(self.notify_frontend)
-        #self.config.add_device_notification(self.notify_frontend)
-
-
-    def notify_frontend(self, args):
-        print(args)
-        pass
-
+    def get_values(self):
+        self.dEmitter = {key: self.dValues[key].read() for key in self.dValues}
+        return self.dEmitter
 
 
 #############
@@ -74,25 +50,25 @@ class Appl:
     def __init__(self):
         app = Flask(__name__, static_folder="../dist/static", template_folder="../dist")
         app.config['SECRET_KEY'] = 'secret!'
-        self.app = app      # Save app for decorator usage
+        self.app = app  # Save app for decorator usage
         self.socketio = SocketIO(app, cors_allowed_origins='*')
         self.socketio.on_namespace(CustomMethods())
         self._port = 5000
         self._debug = True
 
         # Routing
-        @app.route('/', defaults={'path':''})
+        @app.route('/', defaults={'path': ''})
         @app.route('/<path:path>')
         def catch_all(path):
             return render_template("index.html")
 
     def run(self):
-        self.socketio.run(self.app,debug=self._debug, host='0.0.0.0', port=int(self._port))
+        self.socketio.run(self.app, debug=self._debug, host='0.0.0.0', port=int(self._port))
 
 
 class CustomMethods(Namespace):
     def random_number(self):
-        return randint(1,100)
+        return randint(1, 100)
 
     def on_connect(self):
         logging.info('socket connected')
@@ -104,8 +80,11 @@ class CustomMethods(Namespace):
 ###############
 # RUNTIME AREA
 ###############
-class Runtime:
-    def __init__(self):
+class Runtime(threading.Thread):
+    def __init__(self, workQ, socket:SocketIO):
+        threading.Thread.__init__(self)
+        self.workQ = workQ
+        self.socket = socket
         self.SENDER_AMS = '192.168.178.56.1.1'
         self.PLC_AMS = '192.168.178.200.1.1'
         self.PLC_IP = '192.168.178.200'
@@ -126,7 +105,8 @@ class Runtime:
         #       write values from Frontend
         self.add_route_beckhoff()
         self.check_connection()
-
+        with self.plc:
+            self.socket.emit('update__values', self.dev.get_values())
 
     # Create Route on PLC Side
     def add_route_beckhoff(self):
@@ -149,13 +129,10 @@ class Runtime:
         with self.plc as plc:
             if plc.read_device_info()[0] == 'COUPLER_PLC':
                 self.dev = BC9000(plc)
-                self.dInitValues = self.dev.get_initial_values()
 
                 # ToDo: Send init values to Frontend
-                self.dev.connect_event_handler()
-                while True:
-                    print(self.dInitValues)
-                    time.sleep(1)
+                self.dev.get_values()
+
             else:
                 logging.error('Device type not implemented yet')
 
@@ -178,21 +155,14 @@ def init_logging():
         handlers=[
             logging.FileHandler(filename=f'{folder}\\debug.log', mode='w', encoding='utf-8'),
             logging.StreamHandler(sys.stdout)
-            ])
+        ])
 
 
 if __name__ == "__main__":
     init_logging()
     App = Appl()
-    rt = Runtime()
+    q = Queue()
+    rt = Runtime(q, App.socketio)
+    rt.start()
     # Move Runtime to another Thread
-    app_thread = threading.Thread(target=rt.run)
-    app_thread.start()
     App.run()
-
-
-
-
-
-
-
