@@ -6,20 +6,20 @@
     <div class="flex justify-center">
     <p class="border border-black  border-r-0">State: </p>
     <p :class="DeviceState ? 'border border-black  border-l-0 text-green-500' : 'border border-black  border-l-0 text-red-500' ">
-       {{  DeviceState  ?  'online'  :  'offline'  }} </p>
+       {{  DeviceState  ?  'started'  :  'stopped'  }} </p>
     </div>
   </div>
   <!-- Position Segment -->
-  <div class="content grid grid-cols-2 justify-center p-5">
+  <div class="content font-bold grid grid-cols-2 justify-center p-5">
     <div class="border border-black grid grid-cols-2 space-x-1">
-      <p>Istwert:</p>
+      <p>Istposition:</p>
       <p>{{actValue}}</p>
     </div>
     <div class="flex justify-center">
     <desy-button variant="success">Start</desy-button>
     </div>
     <div class="border border-black border-t-0 grid grid-cols-2 space-x-1">
-      <p>Sollwert:</p>
+      <p>Sollposition:</p>
       <p>{{targetValue}}</p>
     </div>
     <div class="flex justify-center">
@@ -73,7 +73,9 @@ export default {
       console.log('socket disconnected')
     },
     update_values: function (data) {
+      this.DeviceState = data.plc_running
       this.actValue = data.actpos
+      this.targetValue = data.targetpos
       console.log('Update values received')
     }
   },

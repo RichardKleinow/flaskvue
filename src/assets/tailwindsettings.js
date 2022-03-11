@@ -37,7 +37,7 @@ const settings = {
   't-radio': {
     component: TRadio,
     props: {
-      classes: 'focus:border-desy-blue'
+      classes: 'focus:border-desy-blue focus:border-width-0'
     }
   }
 }
