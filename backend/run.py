@@ -20,6 +20,9 @@ from queue import Queue
 class BC9000:
     def __init__(self, connection_string: pyads.Connection, offset=0):
         self.conn = connection_string
+        self.deviceName = 'BC9000'
+        # 66 Byte Struct
+        offset = offset * 66
         # Connection area
         if not self.conn.is_open:
             self.conn.open()
@@ -31,15 +34,15 @@ class BC9000:
                         'error': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 18, plc_datatype=pyads.PLCTYPE_SINT),
                         'virtposlim': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 50, plc_datatype=pyads.PLCTYPE_DINT),
                         'virtneglim': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 54, plc_datatype=pyads.PLCTYPE_DINT),
-                        'config': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 58, plc_datatype=pyads.PLCTYPE_INT)}
-        # State area
-        self._running = False
-        if self.conn.read_state()[0] == 6:
-            self._running = True
+                        'config': self.conn.get_symbol(index_group=pyads.INDEXGROUP_MEMORYBYTE, index_offset=offset + 58, plc_datatype=pyads.PLCTYPE_INT)
+                        }
 
 
     def get_values(self):
+        if not self.conn.is_open:
+            self.conn.open()
         self.dEmitter = {key: self.dValues[key].read() for key in self.dValues}
+        self.dEmitter['plc_running'] = True if self.conn.read_state()[1] == 0 else False
         return self.dEmitter
 
 
@@ -47,12 +50,13 @@ class BC9000:
 # FLASK AREA
 #############
 class Appl:
-    def __init__(self):
+    def __init__(self, queue: Queue):
         app = Flask(__name__, static_folder="../dist/static", template_folder="../dist")
         app.config['SECRET_KEY'] = 'secret!'
         self.app = app  # Save app for decorator usage
         self.socketio = SocketIO(app, cors_allowed_origins='*')
-        self.socketio.on_namespace(CustomMethods())
+        self.queue = queue
+        self.socketio.on_namespace(CustomMethods(self.queue))
         self._port = 5000
         self._debug = True
 
@@ -67,8 +71,15 @@ class Appl:
 
 
 class CustomMethods(Namespace):
-    def random_number(self):
-        return randint(1, 100)
+    def __init__(self, workQ:Queue):
+        Namespace.__init__(self)
+        self.workQ = workQ
+        self.dTransfer = {}
+
+    def on_req_DeviceType(self):
+        self.dTransfer = self.workQ.queue[0]
+        logging.info(f'Device Type requested. Returning {self.dTransfer["DeviceType"]}')
+        return self.dTransfer['DeviceType']
 
     def on_connect(self):
         logging.info('socket connected')
@@ -81,9 +92,14 @@ class CustomMethods(Namespace):
 # RUNTIME AREA
 ###############
 class Runtime(threading.Thread):
-    def __init__(self, workQ, socket:SocketIO):
+    def __init__(self, workQ:Queue, socket:SocketIO):
         threading.Thread.__init__(self)
         self.workQ = workQ
+        self.dTransfer = {
+            'DeviceType': ''
+        }
+        self.workQ.put(self.dTransfer)
+        self.dev = None
         self.socket = socket
         self.SENDER_AMS = '192.168.178.56.1.1'
         self.PLC_AMS = '192.168.178.200.1.1'
@@ -103,10 +119,21 @@ class Runtime(threading.Thread):
         #       pull initial values
         #       connect on-change handlers
         #       write values from Frontend
-        self.add_route_beckhoff()
-        self.check_connection()
+        while self.dev is None:
+            self.check_connection()
+            self.add_route_beckhoff()
+
+        while True:
+            self.send_data()
+            time.sleep(1)
+
+
+    def send_data(self):
         with self.plc:
-            self.socket.emit('update__values', self.dev.get_values())
+            if self.dev is not None:
+                self.socket.emit('update_values', self.dev.get_values())
+            else:
+                logging.error('Device got overwritten')
 
     # Create Route on PLC Side
     def add_route_beckhoff(self):
@@ -129,10 +156,7 @@ class Runtime(threading.Thread):
         with self.plc as plc:
             if plc.read_device_info()[0] == 'COUPLER_PLC':
                 self.dev = BC9000(plc)
-
-                # ToDo: Send init values to Frontend
-                self.dev.get_values()
-
+                self.dTransfer['DeviceType'] = self.dev.deviceName
             else:
                 logging.error('Device type not implemented yet')
 
@@ -160,9 +184,10 @@ def init_logging():
 
 if __name__ == "__main__":
     init_logging()
-    App = Appl()
     q = Queue()
+    App = Appl(q)
     rt = Runtime(q, App.socketio)
+    rt.daemon = True
     rt.start()
     # Move Runtime to another Thread
     App.run()
