@@ -65,6 +65,18 @@
 
 <script>
 export default {
+  sockets: {
+    connect: function () {
+      console.log('socketio connected')
+    },
+    disconnect: function () {
+      console.log('socket disconnected')
+    },
+    update_values: function (data) {
+      this.actValue = data.actpos
+      console.log('Update values received')
+    }
+  },
   data () {
     return {
       DeviceName: 'Testmotor',
