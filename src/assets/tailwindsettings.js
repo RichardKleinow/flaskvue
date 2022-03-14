@@ -3,7 +3,8 @@ import {
   TButton,
   TInput,
   TTag,
-  TRadio
+  TRadio,
+  TSelect
 } from 'vue-tailwind/dist/components'
 
 const settings = {
@@ -38,6 +39,13 @@ const settings = {
     component: TRadio,
     props: {
       classes: 'focus:border-desy-blue focus:border-width-0'
+    }
+  },
+  'desy-select': {
+    component: TSelect,
+    props: {
+      fixedClasses: 'pl-3 pr-10 py-2 transition duration-100 ease-in-out border rounded shadow-sm hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none focus:ring-opacity-50  disabled:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed',
+      classes: 'text-white placeholder-gray-400 bg-desy-blue border-gray-300 focus:border-blue-500'
     }
   }
 }
