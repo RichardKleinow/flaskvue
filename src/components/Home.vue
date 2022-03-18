@@ -1,5 +1,11 @@
 <template>
 <div>
+   <head class="flex justify-center">
+             <router-link to="/">
+            <img src=".././assets/logo.svg" alt=".././assets/logo.png" id="logo_wait">
+        </router-link>
+    </head>
+  <p class="justify-center mt-4">Scanning for Devices...</p>
 </div>
 </template>
 
@@ -11,10 +17,10 @@ export default {
     }
   },
   mounted: function () {
-    window.setInterval(() => {
+    this.intdevtype = window.setInterval(() => {
       this.getDeviceType()
     }, 2000)
-    window.setInterval(() => {
+    this.intdevroute = window.setInterval(() => {
       this.RouteToDevice()
     }, 3000)
   },
@@ -30,6 +36,8 @@ export default {
       console.log('Evaluate received Device Type')
       if (this.device_type !== '') {
         console.log('Routing to ' + this.device_type)
+        window.clearInterval(this.intdevtype)
+        window.clearInterval(this.intdevroute)
         this.$router.push({ name: this.device_type }, () => {})
       } else {
         console.log('No Device Type received')
@@ -39,8 +47,11 @@ export default {
 }
 </script>
 
-<style>
-#logo {
+<style scoped>
+
+#logo_wait {
+    height: 200px;
+    width: auto;
     -webkit-animation: v-squareDelay 3s 0s infinite;
     animation: v-squareDelay 3s 0s infinite;
     -webkit-animation-fill-mode: both;

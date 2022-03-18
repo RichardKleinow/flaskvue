@@ -1,24 +1,31 @@
 <template>
-<div id="app">
-    <div id="head" class="flex justify-center">
+<div>
+    <head v-show="seen" class="flex justify-center" id="header">
         <router-link to="/">
             <img src="./assets/logo.svg" alt="./assets/logo.png" id="logo">
         </router-link>
-    </div>
+    </head>
+<div id="app">
     <router-view />
+</div>
 </div>
 </template>
 
 <script>
 export default {
   name: 'App',
+  data () {
+    return {
+      seen: false
+    }
+  },
   watch: {
     $route: {
       handler (to, from) {
-        if (from !== undefined) {
-          if (from.name === 'Home') {
-            this.$router.go(0)
-          }
+        if ((from === undefined) || (to.name === 'Home')) {
+          this.seen = false
+        } else {
+          this.seen = true
         }
       }
     },

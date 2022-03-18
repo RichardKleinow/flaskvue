@@ -14,7 +14,7 @@ Vue.use(VueTailwind, settings)
 Vue.use(
   new VueSocketIO({
     debug: true,
-    connection: SocketIO('http://localhost:5000') // document.location.href) -> change back for prod
+    connection: SocketIO('http://localhost:5000')// document.location.href   -> change back for prod
   })
 )
 

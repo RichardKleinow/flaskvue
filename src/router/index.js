@@ -11,7 +11,8 @@ const routerOptions = [
 const routes = routerOptions.map(route => {
   return {
     ...route,
-    component: () => import(`@/components/${route.component}.vue`)
+    component: () => import(`@/components/${route.component}.vue`),
+    props: {default: true, Home: false}
   }
 })
 
