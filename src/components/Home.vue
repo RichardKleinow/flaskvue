@@ -5,7 +5,7 @@
             <img src=".././assets/logo.svg" alt=".././assets/logo.png" id="logo_wait">
         </router-link>
     </head>
-  <p class="justify-center mt-4">Scanning for Devices...</p>
+  <p class="justify-center mt-4">Scanning for Devices... {{ this.ScanningState }}</p>
 </div>
 </template>
 
@@ -13,12 +13,14 @@
 export default {
   data () {
     return {
-      device_type: ''
+      device_type: '',
+      ScanningState: ''
     }
   },
   mounted: function () {
     this.intdevtype = window.setInterval(() => {
       this.getDeviceType()
+      this.getScanProgress()
     }, 2000)
     this.intdevroute = window.setInterval(() => {
       this.RouteToDevice()
@@ -30,6 +32,11 @@ export default {
       this.$socket.emit('req_DeviceType', (type) => {
         this.device_type = type
         console.log('returned type ' + type)
+      })
+    },
+    getScanProgress () {
+      this.$socket.emit('req_ScanProgress', (progress) => {
+        this.ScanningState = progress
       })
     },
     RouteToDevice () {
